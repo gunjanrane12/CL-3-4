@@ -1,64 +1,66 @@
 import requests
 import os
 
-# Take input
-folder = input("Enter folder number: ").strip()
+folder = input("Enter folder number: ")
 
-# Multiple GitHub API URLs
 api_urls = [
-f"https://api.github.com/repos/gunjanrane12/CL-3-4/contents/{folder}",
-
-    f"https://api.github.com/repos/GauravKumbhar0491/CL-3/contents/{folder}",
-   
-    f"https://api.github.com/repos/Sanjivani17/CL-3/contents/{folder}",
-    f"https://api.github.com/repos/Savdekaryashu/CL-3/contents/{folder}"
+    f"https://api.github.com/repos/GauravKumbhar0491/CL-3/contents/{folder}"
 ]
 
-# Create local folder
+TOKEN = os.getenv("GITHUB_TOKEN")
+
+headers = {
+    "Authorization": f"Bearer {TOKEN}",
+    "Accept": "application/vnd.github+json"
+}
+
 os.makedirs(folder, exist_ok=True)
 
 response = None
 
-# Try links one by one
 for url in api_urls:
 
     try:
-        r = requests.get(url, timeout=10)
+
+        r = requests.get(url, headers=headers, timeout=10)
 
         if r.status_code == 200:
+
             response = r
             break
 
-    except Exception:
+    except requests.RequestException:
         pass
 
-# Stop if all failed
-if response is None:
-    exit()
+if response is not None:
 
-# Get file list
-data = response.json()
+    try:
 
-# If single file instead of folder
-if isinstance(data, dict):
-    data = [data]
+        data = response.json()
 
-# Download files
-for file in data:
+        for file in data:
 
-    if file["type"] == "file":
+            if file["type"] == "file":
 
-        download_url = file["download_url"]
-        file_path = os.path.join(folder, file["name"])
+                download_url = file["download_url"]
+                file_path = os.path.join(folder, file["name"])
 
-        try:
+                try:
 
-            file_data = requests.get(download_url, timeout=10)
+                    file_data = requests.get(
+                        download_url,
+                        headers=headers,
+                        timeout=10
+                    )
 
-            if file_data.status_code == 200:
+                    if file_data.status_code == 200:
 
-                with open(file_path, "wb") as f:
-                    f.write(file_data.content)
+                        with open(file_path, "wb") as f:
 
-        except Exception:
-            pass
+                            f.write(file_data.content)
+
+                except requests.RequestException:
+                    pass
+
+    except Exception:
+        pass
